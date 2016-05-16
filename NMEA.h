@@ -27,14 +27,21 @@ int32_t parseNMEAUTCTime(const char* src);
  * Generic fixed point decimal parser.
  * Parses e.g. "1234.56" to 1234560 (with decimals = 3)
  * Automatically fixes missing trailing zeroes given the number of
- * expected decimals. Does not parse signs.
- *
+ * expected decimals. Does not parse signs.  Stops on any of ",\0*".
  * 
- * 
- * @param decimals. How many digits to expect after the dot. Set to -1 to ignore decimals.
+ * @param decimals. How many digits to expect after the dot.
  * @return The parsed number or INT32_MAX in case of errors
  */
 int32_t parseNMEAFixedPointDecimal(const char* src, int decimals);
+
+/**
+ * Generic integer parser.
+ * Parses e.g. "1234" to 1234.
+ * Does not parse signs. Stops on any of ",\0*".
+ * 
+ * @return The parsed number or INT32_MAX in case of errors
+ */
+int32_t parseNMEAInteger(const char* src);
 
 /**
  * Compute the NMEA checksum of a cstring.

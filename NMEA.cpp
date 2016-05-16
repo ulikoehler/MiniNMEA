@@ -3,6 +3,22 @@
 #include <cctype>
 #include <cstring>
 
+
+int32_t parseNMEAInteger(const char* src) {
+    //There must be at least one digit at the start
+    if(!isdigit(*src)) {
+        return INT32_MAX;
+    }
+    int32_t ret = 0;
+    for(;*src != ',' && *src != '\0' && *src != '*';src++) {
+        if(!isdigit(*src)) {
+            return INT32_MAX;
+        }
+        ret = (ret * 10) + (*src - '0');
+    }
+    return ret;
+}
+
 int32_t parseNMEAFixedPointDecimal(const char* src, int decimals) {
     //There must be at least one digit at the start
     if(!isdigit(*src)) {
@@ -10,7 +26,7 @@ int32_t parseNMEAFixedPointDecimal(const char* src, int decimals) {
     }
     int32_t ret = 0;
     int digitsSinceDot = -1; //0 if dot was just encountered
-    for(;*src != ',' && *src != '\0';src++) {
+    for(;*src != ',' && *src != '\0' && *src != '*';src++) {
         if(*src == '.') {
             if(digitsSinceDot != -1) {
                 //Already seen dot, two dots are illegal
@@ -29,12 +45,11 @@ int32_t parseNMEAFixedPointDecimal(const char* src, int decimals) {
             digitsSinceDot++;
         }
     }
-    if(digitsSinceDot == -1 && decimals > 0) { //No dot found but expected one
+    if(digitsSinceDot == -1) { //No dot found but expected one
         return INT32_MAX;
     }
     //If there are not enough digits after the dot, we need to add the
     // appropriate number of zeros at the end.
-    //This loop is ignored for decimals == -1
     while(digitsSinceDot++ < decimals) {
         ret *= 10;
     }

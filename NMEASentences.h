@@ -57,7 +57,23 @@ struct RMCSentence {
     char posMode;
 };
 
+struct GSVSatInfo {
+    uint16_t id; //Satellite ID
+    uint16_t azimuth; //0-359
+    uint8_t elevation; //0-90
+    uint8_t signal; //Signal strength, 0-99. UINT8_MAX if not used in fix
+};
+
+struct GSVSentence {
+    uint8_t numMsgs; //Number of messages in current message set
+    uint8_t msgNum; //Current message number
+    uint8_t numSats; //Satelites in view
+    uint8_t numSatInfos; //Number of valid elements in satellites array
+    GSVSatInfo satellites[4];
+};
+
 int parseGLLSentence(const char* buf, NMEAPosition* position);
 int parseRMCSentence(const char* buf, RMCSentence* result);
+int parseGSVSentence(const char* buf, GSVSentence* result);
 
 #endif //__NMEA_SENTENCES_H

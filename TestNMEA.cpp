@@ -54,6 +54,15 @@ bool operator==(NMEAPosition const &a, NMEAPosition const &b) {
     return a.latitude == b.latitude && a.longitude == b.longitude;
 }
 
+bool operator==(GSVSatInfo const &a, GSVSatInfo const &b) {
+    return a.id == b.id && a.azimuth == b.azimuth
+            && a.elevation == b.elevation && a.signal == b.signal;
+}
+
+bool operator!=(GSVSatInfo const &a, GSVSatInfo const &b) {
+    return !(a == b);
+}
+
 bool operator==(RMCSentence const &a, RMCSentence const &b) {
     return a.utcTime == b.utcTime
             && a.position == b.position
@@ -63,6 +72,42 @@ bool operator==(RMCSentence const &a, RMCSentence const &b) {
             && a.date == b.date
             && a.posMode == b.posMode;
 }
+
+bool operator==(GSVSentence const &a, GSVSentence const &b) {
+    if(a.numMsgs != b.numMsgs
+         || a.msgNum != b.msgNum
+         || a.numSats != b.numSats
+         || a.numSatInfos != b.numSatInfos) {
+        return false;
+    }
+    //Compare satellite infos
+    for (int i = 0; i < a.numSatInfos; ++i) {
+        if(a.satellites[i] != b.satellites[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::ostream& operator<<(std::ostream &os, GSVSatInfo const &m) {
+    os << "Satellite { #" << (int)m.id << ", azimuth " << (int)m.azimuth
+       << ", elevation " << (int)m.elevation << ", signal " << ((int)m.signal) << '}';
+    return os;
+}
+
+std::ostream& operator<<(std::ostream &os, GSVSentence const &m) {
+    os << "GSVSentence { #" << (int)m.msgNum << " of "
+       << (int)m.numMsgs << ", " << (int)m.numSats << " satellites in view: ";
+    for (int i = 0; i < m.numSatInfos; ++i) {
+        if(i != 0) {
+            os << ", ";
+        }
+        os << m.satellites[i];
+    }
+    os << " }";
+    return os;
+}
+
 
 BOOST_AUTO_TEST_CASE(TestParseNMEACoordinate)
 {
@@ -80,6 +125,12 @@ BOOST_AUTO_TEST_CASE(TestParseNMEACoordinate)
 BOOST_AUTO_TEST_CASE(TestParseNMEAUTCTime)
 {
     BOOST_CHECK_EQUAL(12355912, parseNMEAUTCTime("123559.12"));
+}
+
+BOOST_AUTO_TEST_CASE(TestParseNMEAInteger)
+{
+    BOOST_CHECK_EQUAL(12355912, parseNMEAInteger("12355912"));
+    BOOST_CHECK_EQUAL(1234, parseNMEAInteger("01234"));
 }
 
 BOOST_AUTO_TEST_CASE(TestNMEAChecksum)
@@ -109,6 +160,24 @@ BOOST_AUTO_TEST_CASE(TestParseGLLSentence)
     const char* msg = "$GPGLL,4753.95225,N,01007.36179,E,133017.00,A,A*";
     BOOST_CHECK_EQUAL(0, parseGLLSentence(msg, &pos));
     BOOST_CHECK_EQUAL(ref, pos);
+    //West
+    memset(&pos, 0, sizeof(NMEAPosition));
+    ref = {475395225, -100736179};
+    msg = "$GPGLL,4753.95225,N,01007.36179,W,133017.00,A,A*";
+    BOOST_CHECK_EQUAL(0, parseGLLSentence(msg, &pos));
+    BOOST_CHECK_EQUAL(ref, pos);
+    //South
+    memset(&pos, 0, sizeof(NMEAPosition));
+    ref = {-475395225, 100736179};
+    msg = "$GPGLL,4753.95225,S,01007.36179,E,133017.00,A,A*";
+    BOOST_CHECK_EQUAL(0, parseGLLSentence(msg, &pos));
+    BOOST_CHECK_EQUAL(ref, pos);
+    //South & West
+    memset(&pos, 0, sizeof(NMEAPosition));
+    ref = {-475395225, -100736179};
+    msg = "$GPGLL,4753.95225,S,01007.36179,W,133017.00,A,A*";
+    BOOST_CHECK_EQUAL(0, parseGLLSentence(msg, &pos));
+    BOOST_CHECK_EQUAL(ref, pos);
 }
 
 
@@ -118,6 +187,21 @@ BOOST_AUTO_TEST_CASE(TestParseRMCSentence)
     RMCSentence pos, ref = {8355900, 'A', {471711437, 83391522}, 4, 77520, 91202, 'A'};
     const char* msg = "$GPRMC,083559.00,A,4717.11437,N,00833.91522,E,0.004,77.52,091202,,,A*";
     BOOST_CHECK_EQUAL(0, parseRMCSentence(msg, &pos));
+    BOOST_CHECK_EQUAL(ref, pos);
+}
+
+BOOST_AUTO_TEST_CASE(TestParseGSVSentence)
+{
+    //Simple example
+    GSVSentence pos, ref = {3, 1, 10, 4, {{23,38,230,44}, {29,71,156,47}, {7,29,116,41}, {8,9,81,36}} };
+    const char* msg = "$GPGSV,3,1,10,23,38,230,44,29,71,156,47,07,29,116,41,08,09,081,36*7F";
+    BOOST_CHECK_EQUAL(0, parseGSVSentence(msg, &pos));
+    BOOST_CHECK_EQUAL(ref, pos);
+    //Simple example with only 2 sats (checksum is wrong, don't care)
+    memset(&pos, 0, sizeof(GSVSentence));
+    ref = {3, 1, 10, 2, {{23,38,230,44}, {29,71,156,47}} };
+    msg = "$GPGSV,3,1,10,23,38,230,44,29,71,156,47*7F";
+    BOOST_CHECK_EQUAL(0, parseGSVSentence(msg, &pos));
     BOOST_CHECK_EQUAL(ref, pos);
 }
 
