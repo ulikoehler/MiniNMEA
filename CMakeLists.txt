@@ -8,7 +8,7 @@ set (CMAKE_CXX_STANDARD 11)
 
 add_definitions(-DBOOST_TEST_DYN_LINK)
 
-add_executable (nmeatest TestNMEA.cpp NMEA.cpp NMEASentences.cpp)
+add_executable (nmeatest TestNMEA.cpp NMEA.cpp NMEASentences.cpp NMEASentenceOperators.cpp)
 
 target_link_libraries(nmeatest boost_system boost_unit_test_framework)
 
